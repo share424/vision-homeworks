@@ -8,12 +8,11 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
+#define PI 3.1415926536
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define max(a, b) (a > b ? a : b)
-#define min(a, b) (a < b ? a : b)
 
 // DO NOT CHANGE THIS FILE
 

@@ -110,6 +110,14 @@ scale_image = lib.scale_image
 scale_image.argtypes = [IMAGE, c_int, c_float]
 scale_image.restype = None
 
+rgb_to_hcl = lib.rgb_to_hcl
+rgb_to_hcl.argtypes = [IMAGE]
+rgb_to_hcl.restype = None
+
+hcl_to_rgb = lib.hcl_to_rgb
+hcl_to_rgb.argtypes = [IMAGE]
+hcl_to_rgb.restype = None
+
 load_image_lib = lib.load_image
 load_image_lib.argtypes = [c_char_p]
 load_image_lib.restype = IMAGE

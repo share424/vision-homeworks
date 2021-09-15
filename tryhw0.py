@@ -38,3 +38,12 @@ scale_image(im, 1, 2)
 clamp_image(im)
 hsv_to_rgb(im)
 save_image(im, "output/dog_scale_saturated")
+
+# 8. RGB to HCL
+im = load_image("data/dog.jpg")
+rgb_to_hcl(im)
+shift_image(im, 2, 0.9)
+shift_image(im, 1, -0.02)
+clamp_image(im)
+hcl_to_rgb(im)
+save_image(im, "output/dog_less_chroma")
