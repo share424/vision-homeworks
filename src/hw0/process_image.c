@@ -5,7 +5,7 @@
 #include <math.h>
 #include "image.h"
 
-bool fix_pixel(image im, int *x, int *y, int *c)
+bool clamp(image im, int *x, int *y, int *c)
 {
     *x = MIN(MAX(*x, 0), im.w - 1);
     *y = MIN(MAX(*y, 0), im.h - 1);
@@ -19,13 +19,13 @@ int coord_to_index(image im, int x, int y, int c)
 
 float get_pixel(image im, int x, int y, int c)
 {
-    fix_pixel(im, &x, &y, &c);
+    clamp(im, &x, &y, &c);
     return im.data[coord_to_index(im, x, y, c)];
 }
 
 void set_pixel(image im, int x, int y, int c, float v)
 {
-    fix_pixel(im, &x, &y, &c);
+    clamp(im, &x, &y, &c);
     im.data[coord_to_index(im, x, y, c)] = v;
 }
 
