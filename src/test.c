@@ -82,7 +82,11 @@ int same_image(image a, image b, float eps)
         if (thresh > eps) eps = thresh;
         if(!within_eps(a.data[i], b.data[i], eps)) 
         {
-            printf("The value should be %f, but it is %f! \n", b.data[i], a.data[i]);
+            int c = i / (a.w * a.h);
+            int left = i % (a.w * a.h);
+            int x = left % a.w;
+            int y = left / a.w;
+            printf("The value should be %f, but it is %f! (%d, %d, %d)\n", b.data[i], a.data[i], x, y, c);
             return 0;
         }
     }
