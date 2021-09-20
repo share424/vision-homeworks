@@ -5,7 +5,7 @@
 #include <math.h>
 #include "image.h"
 
-bool clamp(image im, int *x, int *y, int *c)
+void clamp(image im, int *x, int *y, int *c)
 {
     *x = MIN(MAX(*x, 0), im.w - 1);
     *y = MIN(MAX(*y, 0), im.h - 1);
