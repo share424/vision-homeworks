@@ -278,7 +278,11 @@ image colorize_sobel(image im)
             set_pixel(out, x, y, 2, get_pixel(sobel[0], x, y, 0));
         }
     }
+
     // convert to rgb
     hsv_to_rgb(out);
+
+    free_image(sobel[0]);
+    free_image(sobel[1]);
     return out;
 }
