@@ -172,9 +172,10 @@ match *match_descriptors(descriptor *a, int an, descriptor *b, int bn, int *mn)
     // In practice just bring good matches to front of list, set *mn.
     qsort(m, an, sizeof(match), match_compare);
     int top = an;
+    int found = 0;
     for(i = 0; i<top; i++) {
         // check if m[i].bi exists in seen
-        int found = 0;
+        found = 0;
         for(j = 0; j<count; j++) {
             if(seen[j] == m[i].bi) {
                 found = 1;
@@ -255,7 +256,7 @@ int model_inliers(matrix H, match *m, int n, float thresh)
     for(i = 0; i<n; i++) {
         point p = project_point(H, m[i].p);
         float distance = point_distance(p, m[i].q);
-        m->distance = distance;
+        m[i].distance = distance;
         if (distance < thresh) {
             count++;
         }
@@ -364,28 +365,16 @@ matrix RANSAC(match *m, int n, float thresh, int k, int cutoff)
     // if we get to the end return the best homography
     
     int min = 4;
-    
     for(e = 0; e<k; e++) {
         randomize_matches(m, n);
         matrix H = compute_homography(m, min);
-        match *inliners = calloc(n, sizeof(match));
-        int x = 0;
-        for(int i = 0; i<n; i++) {
-            point p = project_point(H, m[i].p);
-            float distance = point_distance(p, m[i].q);
-            if (distance < thresh) {
-                inliners[x++] = m[i];
-            }
+        int count = model_inliers(H, m, n, thresh);
+
+        if (count > best) {
+            Hb = compute_homography(m, count);
+            best = count;
+            if (count > cutoff) return Hb;
         }
-        if (x > best) {
-            matrix better_h = compute_homography(inliners, x);
-            best = x;
-            Hb = better_h;
-            if (x > cutoff) {
-                return Hb;
-            }
-        }
-        free(inliners);
     };
     return Hb;
 }
@@ -446,6 +435,7 @@ image combine_images(image a, image b, matrix H)
     // create matrix translation
     matrix ht = make_translation_homography(dx, dy);
     // apply the translation to homography matrix
+
     matrix hh = matrix_mult_matrix(H, ht);
     for(i = 0; i<c.w; i++) {
         for(j = 0; j<c.h; j++) {
@@ -453,10 +443,22 @@ image combine_images(image a, image b, matrix H)
             point p = project_point(hh, make_point(i, j));
             // if the projected point is valid, copy that pixel
             if (p.x >= 0 && p.x < b.w && p.y >= 0 && p.y < b.h) {
-                for(k = 0; k<c.c; ++k) {
-                    // use bilinear interpolation to interpolate the pixel
-                    set_pixel(c, i, j, k, bilinear_interpolate(b, p.x, p.y, k));
+                // use bilinear interpolation to interpolate the pixel
+                float c1 = bilinear_interpolate(b, p.x, p.y, 0);
+                float c2 = bilinear_interpolate(b, p.x, p.y, 1);
+                float c3 = bilinear_interpolate(b, p.x, p.y, 2);
+
+                if (c1 == 0 && c2 == 0 && c3 == 0) {
+                    continue;
                 }
+                set_pixel(c, i, j, 0, c1);
+                set_pixel(c, i, j, 1, c2);
+                set_pixel(c, i, j, 2, c3);
+                // for(k = 0; k<c.c; ++k) {
+                    
+
+                //     set_pixel(c, i, j, k, );
+                // }
             }
         }
     }
@@ -516,18 +518,48 @@ image cylindrical_project(image im, float f)
     image c = make_image(im.w, im.h, im.c);
     int xc = im.w / 2;
     int yc = im.h / 2;
+    
     for(int i = 0; i<im.w; i++) {
         for(int j = 0; j<im.h; j++) {
             float theta = (i - xc) / f;
             float h = (j - yc) / f;
+            float phi = (j - yc) / sqrt((i - xc)*(i - xc) + f*f);
 
-            float x = sin(theta);
-            float y = h;
             float z = cos(theta);
 
-            x = (f * (x / z)) + xc;
+            float x = f * tan(theta) + xc;
+            float y = (f * (h / z)) + yc;
+
+            for(int k = 0; k<im.c; k++) {
+                float v = 0;
+                if (x >= 0 && x < im.w && y >= 0 && y < im.h) {
+                    v = nn_interpolate(im, x, y, k);
+                }
+                set_pixel(c, i, j, k, v);
+            }
+        }
+    }
+    return c;
+}
+
+image spherical_project(image im, float f)
+{
+    image c = make_image(im.w, im.h, im.c);
+    int xc = im.w / 2;
+    int yc = im.h / 2;
+    
+    for(int i = 0; i<im.w; i++) {
+        for(int j = 0; j<im.h; j++) {
+            float theta = (i - xc) / f;
+            float phi = (j - yc) / sqrt((i - xc)*(i - xc) + f*f);
+
+            float x = sin(theta) * cos(phi);
+            float y = sin(phi);
+            float z = cos(theta) * cos(phi);
+
+            x = f * (x / z) + xc;
             y = (f * (y / z)) + yc;
-            
+
             for(int k = 0; k<im.c; k++) {
                 float v = 0;
                 if (x >= 0 && x < im.w && y >= 0 && y < im.h) {
