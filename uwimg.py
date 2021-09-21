@@ -207,6 +207,10 @@ cylindrical_project = lib.cylindrical_project
 cylindrical_project.argtypes = [IMAGE, c_float]
 cylindrical_project.restype = IMAGE
 
+spherical_project = lib.cylindrical_project
+spherical_project.argtypes = [IMAGE, c_float]
+spherical_project.restype = IMAGE
+
 structure_matrix = lib.structure_matrix
 structure_matrix.argtypes = [IMAGE, c_float]
 structure_matrix.restype = IMAGE
