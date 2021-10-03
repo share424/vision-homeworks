@@ -15,3 +15,5 @@ Thumbs.db
 *.swp
 output/*
 __pycache__
+compile.bat
+uwimg.exe
