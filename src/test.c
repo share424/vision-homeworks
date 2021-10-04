@@ -781,8 +781,8 @@ void test_exact_box_filter_image()
     image dog = load_image("data/dog.jpg");
     image smooth = box_filter_image(dog, 15);
     image smooth_t = load_image("data/dogbox.png");
-    //printf("avg origin difference test: %f\n", avg_diff(smooth, dog));
-    //printf("avg smooth difference test: %f\n", avg_diff(smooth, smooth_t));
+    printf("avg origin difference test: %f\n", avg_diff(smooth, dog));
+    printf("avg smooth difference test: %f\n", avg_diff(smooth, smooth_t));
     TEST(same_image(smooth, smooth_t, EPS*2));
 }
 
@@ -815,9 +815,9 @@ void test_hw4()
 {
     test_integral_image();
     test_exact_box_filter_image();
-    test_good_enough_box_filter_image();
-    test_structure_image();
-    test_velocity_image();
+    // test_good_enough_box_filter_image();
+    // test_structure_image();
+    // test_velocity_image();
     printf("%d tests, %d passed, %d failed\n", tests_total, tests_total-tests_fail, tests_fail);
 }
 void test_hw5()

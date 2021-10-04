@@ -41,6 +41,12 @@ void draw_line(image im, float x, float y, float dx, float dy)
     }
 }
 
+float get_pixel_v2(image im, int x, int y, int c)
+{
+    if (x < 0 || x >= im.w || y < 0 || y >= im.h) return 0;
+    return get_pixel(im, x, y, c);
+}
+
 // Make an integral image or summed area table from an image
 // image im: image to process
 // returns: image I such that I[x,y] = sum{i<=x, j<=y}(im[i,j])
@@ -48,6 +54,19 @@ image make_integral_image(image im)
 {
     image integ = make_image(im.w, im.h, im.c);
     // TODO: fill in the integral image
+    int x, y, z;
+    float p, qa, qb, qc;
+    for(x = 0; x<im.w; x++) {
+        for(y = 0; y<im.h; y++) {
+            for(z = 0; z<im.c; z++) {
+                p = get_pixel(im, x, y, z);
+                qa = get_pixel_v2(integ, x, y - 1, z);
+                qb = get_pixel_v2(integ, x - 1, y, z);
+                qc = get_pixel_v2(integ, x - 1, y - 1, z);
+                set_pixel(integ, x, y, z, p + qa + qb - qc);
+            }
+        }
+    }
     return integ;
 }
 
@@ -61,6 +80,31 @@ image box_filter_image(image im, int s)
     image integ = make_integral_image(im);
     image S = make_image(im.w, im.h, im.c);
     // TODO: fill in S using the integral image.
+    int offset = s/2;
+    printf("filter size: %d -> offset: %d\n", s, offset);
+    for(i = 0; i<im.w; i++) {
+        for(j = 0; j<im.h; j++) {
+            for(k = 0; k<im.c; k++) {
+                float top_left = get_pixel_v2(integ, i - offset - 1, j - offset - 1, k);
+                float top_right = get_pixel_v2(integ, MIN(i + offset, im.w - 1), j - offset - 1, k);
+                float bot_left = get_pixel_v2(integ, i - offset - 1, MIN(j + offset, im.h - 1), k);
+                float bot_right = get_pixel(integ, MIN(i + offset, im.w - 1), MIN(j + offset, im.h - 1), k);
+
+                int w = MIN(i + offset + 1, im.w) - MAX(0, i - offset);
+                int h = MIN(j + offset + 1, im.h) - MAX(0, j - offset);
+                
+                float sum = (bot_right - top_right) + (top_left - bot_left);
+                if (i == 767 && j == 324 && k == 0) {
+                    printf("total: %f (%d, %d) -> (%f, %f, %f, %f)\n", sum, w, h, top_left, top_right, bot_left, bot_right);
+                    printf("top_left: (%d, %d)\n", i - offset - 1, j - offset - 1);
+                    printf("top_right: (%d, %d)\n", MIN(i + offset, im.w - 1), j - offset - 1);
+                    printf("bot_left: (%d, %d)\n", i - offset - 1, j + offset);
+                    printf("bot_right: (%d, %d)\n", MIN(i + offset, im.w - 1), MIN(j + offset, im.h - 1));
+                }
+                set_pixel(S, i, j, k, sum / (float)(w*h));
+            }
+        }
+    }
     return S;
 }
 
