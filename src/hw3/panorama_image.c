@@ -63,7 +63,6 @@ image draw_matches(image a, image b, match *matches, int n, int inliers)
     image both = both_images(a, b);
     int i,j;
     for(i = 0; i < n; ++i){
-        if(i>=inliers) continue;
         int bx = matches[i].p.x; 
         int ex = matches[i].q.x; 
         int by = matches[i].p.y;
@@ -147,10 +146,7 @@ match *match_descriptors(descriptor *a, int an, descriptor *b, int bn, int *mn)
         float closest = 0;
         for(i = 0; i<bn; i++) {
             float distance = l1_distance(a[j].data, b[i].data, a[j].n);
-            if (i == 0) {
-                closest = distance;
-            }
-            if (closest > distance) {
+            if (closest > distance || i == 0) {
                 bind = i;
                 closest = distance;
             }
@@ -256,15 +252,24 @@ int model_inliers(matrix H, match *m, int n, float thresh)
     // TODO: count number of matches that are inliers
     // i.e. distance(H*p, q) < thresh
     // Also, sort the matches m so the inliers are the first 'count' elements.
+    match temp;
     for(i = 0; i<n; i++) {
         p = project_point(H, m[i].p);
         distance = point_distance(p, m[i].q);
         m[i].distance = distance;
         if (distance < thresh) {
+            // temp = m[count];
+            // m[count] = m[i];
+            // m[i] = temp;
             count++;
+            temp = m[i];
+            for(int j = i; j>0; j--) {
+                m[j] = m[j-1];
+            }
+            m[0] = temp;
         }
     }
-    qsort(m, n, sizeof(match), match_compare);
+    // qsort(m, n, sizeof(match), match_compare);
     return count;
 }
 
@@ -276,9 +281,9 @@ void randomize_matches(match *m, int n)
     // TODO: implement Fisher-Yates to shuffle the array.
     int i, j;
     match temp;
-    for(i = n-1; i>0; i--) {
+    for(i = n-1; i>=1; i--) {
         // generate random number between 0 and i
-        j = rand() & (i + 1);
+        j = rand() % (i + 1);
         // swap j and i
         temp = m[j];
         m[j] = m[i];
@@ -416,6 +421,7 @@ image combine_images(image a, image b, matrix H)
     // Can disable this if you are making very big panoramas.
     // Usually this means there was an error in calculating H.
     if(w > 7000 || h > 7000){
+        printf("Output target: (%d, %d)", w, h);
         fprintf(stderr, "output too big, stopping\n");
         return copy_image(a);
     }
@@ -491,32 +497,28 @@ image panorama_image(image a, image b, float sigma, float thresh, int nms, float
     int mn = 0;
     
     // Calculate corners and descriptors
-    printf("find corners\n");
     descriptor *ad = harris_corner_detector(a, sigma, thresh, nms, &an);
     descriptor *bd = harris_corner_detector(b, sigma, thresh, nms, &bn);
 
     // Find matches
-    printf("find matches\n");
     match *m = match_descriptors(ad, an, bd, bn, &mn);
 
     // Run RANSAC to find the homography
-    printf("run ransac\n");
     matrix H = RANSAC(m, mn, inlier_thresh, iters, cutoff);
 
-    if(1){
-        // Mark corners and matches between images
-        mark_corners(a, ad, an);
-        mark_corners(b, bd, bn);
-        image inlier_matches = draw_inliers(a, b, H, m, mn, inlier_thresh);
-        save_image(inlier_matches, "output/inliers");
-    }
+    // if(1){
+    //     // Mark corners and matches between images
+    //     mark_corners(a, ad, an);
+    //     mark_corners(b, bd, bn);
+    //     image inlier_matches = draw_inliers(a, b, H, m, mn, inlier_thresh);
+    //     save_image(inlier_matches, "output/inliers");
+    // }
 
     free_descriptors(ad, an);
     free_descriptors(bd, bn);
     free(m);
 
     // Stitch the images together with the homography
-    printf("combine images\n");
     image comb = combine_images(a, b, H);
     return comb;
 }
@@ -530,6 +532,21 @@ point project_cylinder(point p, float xc, float yc, float f)
 
     float x = f * tan(theta) + xc;
     float y = (f * (h / z)) + yc;
+
+    return make_point(x, y);
+}
+
+point project_spherical(point p, float xc, float yc, float f)
+{
+    float theta = (p.x - xc) / f;
+    float phi = (p.y - yc) / sqrt((p.x - xc)*(p.x - xc) + f*f);
+
+    float x = sin(theta) * cos(phi);
+    float y = sin(phi);
+    float z = cos(theta) * cos(phi);
+
+    x = f * (x / z) + xc;
+    y = (f * (y / z)) + yc;
 
     return make_point(x, y);
 }
@@ -571,27 +588,28 @@ image cylindrical_project(image im, float f)
 
 image spherical_project(image im, float f)
 {
-    image c = make_image(im.w, im.h, im.c);
     int xc = im.w / 2;
     int yc = im.h / 2;
+
+    point p = project_spherical(make_point(0, 0), xc, yc, f);
+    point q = project_spherical(make_point(xc, 0), xc, yc, f);
+    float dx = p.x;
+    float dy = q.y;
+
+    image c = make_image(im.w + (int)(dx*2) + (int)(dy*2), im.h, im.c);
+    
+    int i, j, k;
+    float v;
     
     for(int i = 0; i<im.w; i++) {
         for(int j = 0; j<im.h; j++) {
-            float theta = (i - xc) / f;
-            float phi = (j - yc) / sqrt((i - xc)*(i - xc) + f*f);
-
-            float x = sin(theta) * cos(phi);
-            float y = sin(phi);
-            float z = cos(theta) * cos(phi);
-
-            x = f * (x / z) + xc;
-            y = (f * (y / z)) + yc;
+            p = project_spherical(make_point(i, j), xc, yc, f);
 
             for(int k = 0; k<im.c; k++) {
                 float v = 0;
-                if (x >= 0 && x < im.w && y >= 0 && y < im.h) {
-                    v = nn_interpolate(im, x, y, k);
-                }
+                // if (x >= 0 && x < im.w && y >= 0 && y < im.h) {
+                    v = nn_interpolate(im, p.x, p.y, k);
+                // }
                 set_pixel(c, i, j, k, v);
             }
         }
