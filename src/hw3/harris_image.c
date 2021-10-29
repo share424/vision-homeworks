@@ -103,12 +103,13 @@ image make_1d_gaussian(float sigma)
 // returns: smoothed image.
 image smooth_image(image im, float sigma)
 {
-    // if(1){
-    //     image g = make_gaussian_filter(sigma);
-    //     image s = convolve_image(im, g, 1);
-    //     free_image(g);
-    //     return s;
-    // } else {
+    // can't use the faster version on optical flow
+    if(1){
+        image g = make_gaussian_filter(sigma);
+        image s = convolve_image(im, g, 1);
+        free_image(g);
+        return s;
+    } else {
         // TODO: optional, use two convolutions with 1d gaussian filter.
         // If you implement, disable the above if check.
         image filter = make_1d_gaussian(sigma);
@@ -122,7 +123,7 @@ image smooth_image(image im, float sigma)
         free_image(filter);
         free_image(h_filter);
         return out;
-    // }
+    }
 }
 
 // Calculate the structure matrix of an image.

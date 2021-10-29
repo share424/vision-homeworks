@@ -162,7 +162,7 @@ image time_structure_matrix(image im, image prev, int s)
         }
     }
 
-    // S = box_filter_image(S, s);
+    S = box_filter_image(S, s);
 
     if(converted){
         free_image(im); free_image(prev);
@@ -198,14 +198,14 @@ image velocity_image(image S, int stride)
                 // M.data[1][0] = Ixy;
                 // M.data[1][1] = Iyy;
                 // matrix invert = matrix_invert(M);
-                matrix invert = make_matrix(2, 2);
-                invert.data[0][0] = Iyy / d;
-                invert.data[0][1] = -Ixy / d;
-                invert.data[1][0] = -Ixy / d;
-                invert.data[1][1] = Ixx / d;
+                // matrix invert = make_matrix(2, 2);
+                M.data[0][0] = Iyy / d;
+                M.data[0][1] = -Ixy / d;
+                M.data[1][0] = -Ixy / d;
+                M.data[1][1] = Ixx / d;
 
-                vx = (invert.data[0][0] * -Ixt) + (invert.data[0][1] * -Iyt);
-                vy = (invert.data[1][0] * -Ixt) + (invert.data[1][1] * -Iyt);
+                vx = (M.data[0][0] * -Ixt) + (M.data[0][1] * -Iyt);
+                vy = (M.data[1][0] * -Ixt) + (M.data[1][1] * -Iyt);
             } 
             
 
