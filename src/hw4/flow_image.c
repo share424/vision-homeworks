@@ -80,28 +80,43 @@ image box_filter_image(image im, int s)
     image integ = make_integral_image(im);
     image S = make_image(im.w, im.h, im.c);
     // TODO: fill in S using the integral image.
+    float top_left, top_right, bot_left, bot_right, value;
+    // printf("Image dim: (%d, %d)\n", im.w, im.h);
     int offset = s/2;
-    printf("filter size: %d -> offset: %d\n", s, offset);
-    for(i = 0; i<im.w; i++) {
-        for(j = 0; j<im.h; j++) {
-            for(k = 0; k<im.c; k++) {
-                float top_left = get_pixel_v2(integ, i - offset - 1, j - offset - 1, k);
-                float top_right = get_pixel_v2(integ, MIN(i + offset, im.w - 1), j - offset - 1, k);
-                float bot_left = get_pixel_v2(integ, i - offset - 1, MIN(j + offset, im.h - 1), k);
-                float bot_right = get_pixel(integ, MIN(i + offset, im.w - 1), MIN(j + offset, im.h - 1), k);
+    for(j = 0; j<im.h; j++) {
+        for(i = 0; i<im.w; i++) {
+            int w = MAX(MIN(im.w - 1, i + offset) - MAX(0, i - offset), 0) + 1;
+            int h = MAX(MIN(im.h - 1, j + offset) - MAX(0, j - offset), 0) + 1;
+            // if(i == 763 && j == 347) {
+            //     printf("w: %d, h: %d\n", w, h);
+            //     top_left = get_pixel_v2(integ, i - offset - 1, j - offset - 1, 0);
+            //     top_right = get_pixel_v2(integ, MIN(i + offset, im.w - 1), j - offset - 1, 0);
+            //     bot_left = get_pixel_v2(integ, i - offset - 1, j + offset, 0);
+            //     bot_right = get_pixel_v2(integ, MIN(i + offset, im.w - 1), j + offset, 0);
+            //     value = (bot_right - bot_left - top_right + top_left);
 
-                int w = MIN(i + offset + 1, im.w) - MAX(0, i - offset);
-                int h = MIN(j + offset + 1, im.h) - MAX(0, j - offset);
+            //     printf("top_left: (%d, %d) => %f\n", i - offset - 1, j - offset - 1, top_left);
+            //     printf("top_right: (%d, %d) => %f\n", MIN(i + offset, im.w - 1), j - offset - 1, top_right);
+            //     printf("bot_left: (%d, %d) => %f\n", i - offset - 1, j + offset, bot_left);
+            //     printf("bot_right: (%d, %d) => %f\n", MIN(i + offset, im.w - 1), MIN(j + offset, im.h - 1), bot_right);
+            //     printf("value => %f\n", value);
+
                 
-                float sum = (bot_right - top_right) + (top_left - bot_left);
-                if (i == 767 && j == 324 && k == 0) {
-                    printf("total: %f (%d, %d) -> (%f, %f, %f, %f)\n", sum, w, h, top_left, top_right, bot_left, bot_right);
-                    printf("top_left: (%d, %d)\n", i - offset - 1, j - offset - 1);
-                    printf("top_right: (%d, %d)\n", MIN(i + offset, im.w - 1), j - offset - 1);
-                    printf("bot_left: (%d, %d)\n", i - offset - 1, j + offset);
-                    printf("bot_right: (%d, %d)\n", MIN(i + offset, im.w - 1), MIN(j + offset, im.h - 1));
-                }
-                set_pixel(S, i, j, k, sum / (float)(w*h));
+            // }
+            for(k = 0; k<im.c; k++) {
+                // get sum of area s x s
+                top_left = get_pixel_v2(integ, i - offset - 1, j - offset - 1, k);
+                top_right = get_pixel_v2(integ, MIN(i + offset, im.w - 1), j - offset - 1, k);
+                bot_left = get_pixel_v2(integ, i - offset - 1, MIN(j + offset, im.h - 1), k);
+                bot_right = get_pixel_v2(integ, MIN(i + offset, im.w - 1), MIN(j + offset, im.h - 1), k);
+
+                value = (bot_right - bot_left - top_right + top_left);
+                // if(i == 763 && j == 347) {
+                //     printf("c: %d => %f\n", k, value);
+                // }
+                value = value / (w*h);
+
+                set_pixel(S, i, j, k, value);
             }
         }
     }
@@ -126,7 +141,28 @@ image time_structure_matrix(image im, image prev, int s)
 
     // TODO: calculate gradients, structure components, and smooth them
 
-    image S;
+    image S = make_image(im.w, im.h, 5);
+
+    image x_filter = make_gx_filter();
+    image y_filter = make_gy_filter();
+
+    image im_x = convolve_image(im, x_filter, 0);
+    image im_y = convolve_image(im, y_filter, 0);
+
+    for(int x = 0; x<im.w; x++) {
+        for(int y = 0; y<im.h; y++) {
+            float px = get_pixel(im_x, x, y, 0);
+            float py = get_pixel(im_y, x, y, 0);
+            float t = get_pixel(im, x, y, 0) - get_pixel(prev, x, y, 0);
+            set_pixel(S, x, y, 0, px*px);
+            set_pixel(S, x, y, 1, py*py);
+            set_pixel(S, x, y, 2, px*py);
+            set_pixel(S, x, y, 3, px*t);
+            set_pixel(S, x, y, 4, py*t);
+        }
+    }
+
+    // S = box_filter_image(S, s);
 
     if(converted){
         free_image(im); free_image(prev);
@@ -153,6 +189,25 @@ image velocity_image(image S, int stride)
             // TODO: calculate vx and vy using the flow equation
             float vx = 0;
             float vy = 0;
+            
+            // calculate determinant to check if the matrix can be inverted
+            float d = (Ixx * Iyy) - (Ixy * Ixy);
+            if (d != 0) {
+                // M.data[0][0] = Ixx;
+                // M.data[0][1] = Ixy;
+                // M.data[1][0] = Ixy;
+                // M.data[1][1] = Iyy;
+                // matrix invert = matrix_invert(M);
+                matrix invert = make_matrix(2, 2);
+                invert.data[0][0] = Iyy / d;
+                invert.data[0][1] = -Ixy / d;
+                invert.data[1][0] = -Ixy / d;
+                invert.data[1][1] = Ixx / d;
+
+                vx = (invert.data[0][0] * -Ixt) + (invert.data[0][1] * -Iyt);
+                vy = (invert.data[1][0] * -Ixt) + (invert.data[1][1] * -Iyt);
+            } 
+            
 
             set_pixel(v, i/stride, j/stride, 0, vx);
             set_pixel(v, i/stride, j/stride, 1, vy);
