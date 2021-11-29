@@ -274,29 +274,147 @@ void train_model(model m, data d, int batch, int iters, double rate, double mome
 // Questions 
 //
 // 5.2.2.1 Why might we be interested in both training accuracy and testing accuracy? What do these two numbers tell us about our current model?
-// TODO
-//
-// 5.2.2.2 Try varying the model parameter for learning rate to different powers of 10 (i.e. 10^1, 10^0, 10^-1, 10^-2, 10^-3) and training the model. What patterns do you see and how does the choice of learning rate affect both the loss during training and the final model accuracy?
-// TODO
-//
-// 5.2.2.3 Try varying the parameter for weight decay to different powers of 10: (10^0, 10^-1, 10^-2, 10^-3, 10^-4, 10^-5). How does weight decay affect the final model training and test accuracy?
-// TODO
-//
-// 5.2.3.1 Currently the model uses a logistic activation for the first layer. Try using a the different activation functions we programmed. How well do they perform? What's best?
-// TODO
-//
-// 5.2.3.2 Using the same activation, find the best (power of 10) learning rate for your model. What is the training accuracy and testing accuracy?
-// TODO
-//
-// 5.2.3.3 Right now the regularization parameter `decay` is set to 0. Try adding some decay to your model. What happens, does it help? Why or why not may this be?
-// TODO
-//
-// 5.2.3.4 Modify your model so it has 3 layers instead of two. The layers should be `inputs -> 64`, `64 -> 32`, and `32 -> outputs`. Also modify your model to train for 3000 iterations instead of 1000. Look at the training and testing error for different values of decay (powers of 10, 10^-4 -> 10^0). Which is best? Why?
-// TODO
-//
-// 5.3.2.1 How well does your network perform on the CIFAR dataset?
-// TODO
-//
+// Kedua nilai tersebut menunjukan performa model yang kita bangun.
+// Training accuracy menunjukkan performa model yang kita bangun pada data training.
+// Testing accuracy menunjukkan performa model yang kita bangun pada data testing.
+// pada hasil evaluasi untuk model mnist, didapatkan training accuracy  0.903 dan testing accuracy 0.908
+// nilai ini menunjukan model mnist kita tidak overfitting maupun underfitting.
+// Nilai testing yang tinggi menunjukan model mnist kita dapat mengklasifikasi data dengan baik pada unseen data.
 
+// 5.2.2.2 Try varying the model parameter for learning rate to different powers of 10 (i.e. 10^1, 10^0, 10^-1, 10^-2, 10^-3) and training the model. What patterns do you see and how does the choice of learning rate affect both the loss during training and the final model accuracy?
+/**
+ * Berikut hasil eksplorasi
+ * 
+ * LR       Train Acc   Test Acc
+ * 10	    0.098716667	0.098
+    1	    0.89115	    0.8901
+    0.1	    0.920133333	0.9195
+    0.01	0.903066667	0.9086
+    0.001	0.860633333	0.8704
+    0.0001	0.734433333	0.746
+    0.00001	0.137066667	0.1327
+
+ * 
+ */
+
+// Dari hasil eksplorasi Didapatkan pola bahwa akurasi akan menurun seiring dengan menurunya learning rate. tapi hal ini masih belum pasti, karena sifat learning rate yang hyperparameter, sehingga untuk mendapatkan hasil terbaik hanya bisa didapat dengan menguji coba
+// Didapatkan bahwa learning rate 0.1 memiliki akurasi terbaik yaitu 0.91 untuk data test dan 0.92 untuk data training
+
+// 5.2.2.3 Try varying the parameter for weight decay to different powers of 10: (10^0, 10^-1, 10^-2, 10^-3, 10^-4, 10^-5). How does weight decay affect the final model training and test accuracy?
+/** 
+    Decay   Train Acc   Test Acc
+    10	    0.861266667	0.8721
+    1	    0.898	    0.9057
+    0.1	    0.902566667	0.9087
+    0.01	0.902966667	0.9086
+    0.001	0.90305	    0.9086
+    0.0001	0.903066667	0.9086
+    0.00001	0.903066667	0.9086
+
+ * untuk decay memiliki pola meningkat akurasinya seiring menurunya nilai decaynya. akan tetapi setelah mencapai titik puncaknya, maka nilai akurasinya akan stagnan
+   didapatkan nilai weight decay terbaik adalah 0.1
+ */
+
+// 5.2.3.1 Currently the model uses a logistic activation for the first layer. Try using a the different activation functions we programmed. How well do they perform? What's best?
+/** Berikut hasil eksplorasi
+ *  Activation	Training Accuracy	Testing Accuracy
+    SIGMOID	    0.88785	            0.8956
+    RELU	    0.924616667	        0.9256
+    LEAKY RELU	0.92225	            0.9233
+
+ *  dari hasil diatas, didapatkan bahwa RELU memiliki akurasi terbaik pada train dan test. 
+    Selain itu leaky relu juga memiliki akurasi tidak jauh berbeda dari RELU.
+    Sigmoid/Logistic memiliki nilai akurasi terendah pada train dan test.
+ */
+
+// 5.2.3.2 Using the same activation, find the best (power of 10) learning rate for your model. What is the training accuracy and testing accuracy?
+/** RELU
+ *  LR      	Training Accuracy	Testing Accuracy
+    1	        0.098716667	        0.098
+    0.1	        0.952116667	        0.9477
+    0.01	    0.924616667	        0.9256
+    0.001	    0.862583333	        0.8687
+    0.0001	    0.54315	            0.5475
+    0.00001	    0.131633333	        0.1327
+ * 
+ */
+ /** LEAKY RELU
+    LR      	Training Accuracy	Testing Accuracy
+    1	        0.098716667	        0.098
+    0.1	        0.9589	            0.9518
+    0.01	    0.92225	            0.9233
+    0.001	    0.864066667	        0.8693
+    0.0001	    0.561983333	        0.5696
+    0.00001	    0.12805	            0.1327
+ **/
+ /** SIGMOID/LOGISTIC
+    LR      	Training Accuracy	Testing Accuracy
+    1	        0.95585	            0.9494
+    0.1	        0.943433333	        0.9396
+    0.01	    0.88785	            0.8956
+    0.001	    0.66145	            0.6732
+    0.0001	    0.172183333	        0.176
+    0.00001	    0.09735	            0.0982
+ **/
+ /**
+    dari hasil eksplorasi, didapat bahwa fungsi aktivasi Leaky RELU memiliki
+    akurasi terbaik pada train dan test dengan learning rate 0.1.
+    Sangat mengejutkan, ternyata sigmoid juga dapat akurasi yang baik pada learning rate 1
+ **/
+// 5.2.3.3 Right now the regularization parameter `decay` is set to 0. Try adding some decay to your model. What happens, does it help? Why or why not may this be?
+/**
+ *  Leaky RELU	LR=0.1	
+    Decay	Training Accuracy	Testing Accuracy
+    1	    0.923266667	        0.923
+    0.1	    0.954966667	        0.9523
+    0.01	0.95815	            0.951
+    0.001	0.95835	            0.9528
+    0.0001	0.9589	            0.9518
+    0.00001	0.958733333	        0.9524
+
+ * didapatkan hasil bahwa weight decay 0.001 menghasilkan testing accuracy terbaik, yaitu 0.9528
+   setelah menambahkan weight decay, testing accuracy meningkat sebensar 0.01, sehingga weight decay memiliki
+   memiliki pengaruh dalam performansi model
+   weight decay dapat membantu mengeneralisasi model, karena dapat mengurangi model yang terlalu spesifik
+   dengan cara mengalikan weight dengan weight decay
+ */
+
+// 5.2.3.4 Modify your model so it has 3 layers instead of two. The layers should be `inputs -> 64`, `64 -> 32`, and `32 -> outputs`. Also modify your model to train for 3000 iterations instead of 1000. Look at the training and testing error for different values of decay (powers of 10, 10^-4 -> 10^0). Which is best? Why?
+// setelah mengganti jumlah layer menjadi 3 dengan konfigurasi input -> 64 -> 32 -> output
+// dan hyperparameter sebagai berikut
+// lr           = 0.1
+// activation   = leaky relu
+// epoch        = 3000
+
+/**
+ *  Decay	Training Accuracy	Testing Accuracy
+    1	    0.937383333	        0.937
+    0.1	    0.972233333	        0.9675
+    0.01	0.97885	            0.9689
+    0.001	0.9773	            0.9659
+    0.0001	0.976583333	        0.9669
+
+ * 
+ */
+// didapatkan akurasi terbaik menggunakan weight decay 0.01. nilai ini menjadi terbaik karena dari beberapa pengujian sebelumnya juga menunjukan hasil yang bagus.
+// nilai ini dapat mengeneralisasi weight yang akan diupdate agar tidak terlalu besar
+// dengan menambahkan jumlah layer, dapat meningkatkan akurasi sebesar 1.3%
+// hal ini membuktikam bahwa arsitektur yang lebih dalam, dapat menghasilkan
+// akurasi yang lebih baik
+
+// 5.3.2.1 How well does your network perform on the CIFAR dataset?
+// Pada dataset cifar10, saya menggunakan configurasi
+// input -> 512 (lrelu) -> 256 (lrelu) -> output (softmax)
+// lr           = 0.1
+// activation   = leaky relu
+// decay        = 0.001
+// epoch        = 100
+// didapatkan hasil
+// train acc    = 0.276
+// test acc     = 0.2808
+// hasilnya cukup buruk dengan menggunakan konfigurasi yang mirip seperti dataset mnist
+// hal ini sepertinya diakibatkan oleh dataset cifar10 yang memikiki ukuran dimensi lebih 
+// besar dan memiliki 3 channel warna. selain itu jumlah epochs yang hanya 100 juga menjadi
+// penyebab hasilnya kurang memuaskan
 
 

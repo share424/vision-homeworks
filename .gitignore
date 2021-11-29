@@ -17,3 +17,9 @@ output/*
 __pycache__
 compile.bat
 uwimg.exe
+
+mnist
+cifar
+
+cifar.test
+cifar.train
